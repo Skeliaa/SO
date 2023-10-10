@@ -1,0 +1,222 @@
+#include "funciones.h"
+#include <unistd.h>
+#include <stdbool.h>
+#include <sys/wait.h>
+#include <string.h>
+#include <sys/shm.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main() {
+  pid_t pids[4];
+
+  //Definir pipes
+  int ab[2];
+  int bc[2];
+  int cd[2];
+  int da[2];
+
+  int id = 0;
+  int leer = 0;
+
+  key_t key0 = ftok(".", 0);
+  key_t key1 = ftok(".", 1);
+  key_t key2 = ftok(".", 2);
+  key_t key3 = ftok(".", 3);
+  key_t key4 = ftok(".", 4);
+  if(key0==-1 || key1 == -1|| key2 == -1 || key3 == -1 || key4 == -1){
+    printf("Error! No se ha podido crear la memoria compartida.\n");
+  }
+
+  int memory0 = shmget(key0, sizeof(Mesa), IPC_CREAT|0666);
+  int memory1 = shmget(key1, sizeof(Jugador)*4, IPC_CREAT|0666);
+  int memory2 = shmget(key2, sizeof(int)*44, IPC_CREAT|0666);
+  int memory3 = shmget(key3, sizeof(int), IPC_CREAT|0666);
+  int memory4 = shmget(key3, sizeof(int), IPC_CREAT|0666);
+
+  Mesa *mesa = (Mesa *)shmat(memory0, NULL, 0);
+  if(mesa==(Mesa*)-1){
+    printf("Error!\n");
+    exit(1);
+  }
+
+  Jugador *jugadores = (Jugador *)shmat(memory1, NULL, 0);
+  if(jugadores == (Jugador*)-1){
+    printf("Error!\n");
+    exit(2);
+  }
+
+  int *cartas = (int *)shmat(memory2, NULL, 0);
+  if(cartas == (int*)-1){
+    printf("Error!\n");
+    exit(3);
+  }
+
+  int *turno = (int *)shmat(memory3, NULL, 0);
+  if(turno == (int*)-1){
+    printf("Error!\n");
+    exit(4);
+  }
+
+  int *contador = (int *)shmat(memory4, NULL, 0);
+  if(contador == (int*)-1){
+    printf("Error!\n");
+    exit(4);
+  }
+
+  for(int i = 0; i<44; i++){
+    cartas[i] = i+1;
+  }
+
+    printf("============================================================================\n");
+    printf("======================== BIENVENIDO AL TOMA 6!! ============================\n");
+    printf("============================================================================\n"); 
+
+  randomize(cartas, total_cartas);
+
+  for(int i = 0; i<4; i++){
+    mesa->filas[i][0] = cartas[i];
+  }
+  mesa->cant_fila1 = 1;
+  mesa->cant_fila2 = 1;
+  mesa->cant_fila3 = 1;
+  mesa->cant_fila4 = 1;
+
+  for(int i = 4; i<14;i++){
+    jugadores[0].mano[i-4] = cartas[i];
+  }
+  for(int i = 14; i<24;i++){
+    jugadores[1].mano[i-4] = cartas[i];
+  }
+  for(int i = 24; i<34;i++){
+    jugadores[2].mano[i-4] = cartas[i];
+  }
+  for(int i = 34; i<44;i++){
+    jugadores[3].mano[i-34] = cartas[i];
+  }
+  jugadores[0].cant_cartas = 10;
+  jugadores[1].cant_cartas = 10;
+  jugadores[2].cant_cartas = 10;
+  jugadores[3].cant_cartas = 10;
+
+  if(pipe(ab)==-1 || pipe(bc)==-1 || pipe(cd)==-1 || pipe(da)==-1){
+    printf("Error!\n");
+    exit(5);
+  }
+
+  for(int i = 0; i<4; i++){
+    pids[i] = fork();
+    if(pids[i]==0){
+      id = i+1;
+      break;
+    }
+  }
+
+  if(id ==1){
+    close(da[1]);
+    close(ab[0]);
+  }
+  else if(id == 2){
+    close(ab[1]);
+    close(bc[0]);
+  }
+  else if(id == 3){
+    close(bc[1]);
+    close(cd[0]);
+  }
+  else if(id == 4){
+    close(cd[1]);
+    close(da[0]);
+  }
+
+  for(int i = 0; i<4; ++i){
+    wait(NULL);
+  }
+
+  int flag = false;
+  *contador = 0;
+  int elegida;
+  *turno = carta_min(jugadores);
+  while(leer<40){
+    if(id == 1){
+      if(leer == 40){
+        break;
+      }
+      if (flag){
+        read(da[0], &leer, sizeof(int));
+      }
+      flag = true;
+      if(*turno == 0){
+        printf("Turno del jugador 1!\n");
+        printMesa(mesa);
+        printf("Tus cartas son: \n");
+        for(int i = 0; i<jugadores[0].cant_cartas; i++){
+          printf("(%d)|%d|",i+1, jugadores[0].mano[i]);
+        }
+        printf("\n");
+        printf("¿Qué carta deseas jugar? Representada por el número entre paréntersis: ");
+        scanf("%d",&elegida);
+        playerPlay(mesa, &jugadores[0], elegida);
+        leer+=1;
+        *turno = 1;
+      }
+      write(ab[1],&leer,sizeof(int));
+    }
+    else if(id ==2){
+      if(leer == 40){
+        break;
+      }
+      read(ab[0], &leer, sizeof(int));
+      if(*turno == 1){
+        printf("Turno del jugador 2\n");
+        botPlay(mesa, &jugadores[1]);
+        leer+=1;
+        *turno = 2;
+      }
+      write(bc[1],&leer,sizeof(int));
+    }
+    else if(id ==3){
+      if(leer == 40){
+        break;
+      }
+      read(bc[0], &leer, sizeof(int));
+      if(*turno == 2){
+        printf("Turno del jugador 3\n");
+        botPlay(mesa, &jugadores[2]);
+        leer+=1;
+        *turno = 3;
+      }
+      write(cd[1],&leer,sizeof(int));
+    }
+    else if(id ==4){
+      if(leer == 40){
+        break;
+      }
+      read(cd[0], &leer, sizeof(int));
+      if(*turno == 3){
+        printf("Turno del jugador 4\n");
+        botPlay(mesa, &jugadores[3]);
+        leer+=1;
+        *turno = 0;
+      }
+      write(da[1],&leer,sizeof(int));
+    }
+  }
+  int ganador, menor = 10000;
+  if(id == 0){
+    for(int i = 0; i<4; i++){
+      if(jugadores[i].puntos<menor){
+        menor = jugadores[i].puntos;
+        ganador = i+1;
+      }
+    }
+    printf("Ganó el juagdor %d", ganador);
+  }
+
+  shmctl(memory0, IPC_RMID, NULL);
+  shmctl(memory1, IPC_RMID, NULL);
+  shmctl(memory2, IPC_RMID, NULL);
+  shmctl(memory3, IPC_RMID, NULL);
+  shmctl(memory4, IPC_RMID, NULL);
+  unlink(".");
+  return 0; 
