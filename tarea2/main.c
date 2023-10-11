@@ -1,357 +1,79 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <time.h>
-#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include "headerso.h"
+//
 
-
-const int MAX = 1000000;
-struct charM {
-    char** mp;
-    int dimension;
-};
-char* getLine(FILE* fp){
-    char temp[MAX];
-    int i = 0;
-    char c = 'a';
-    while(c != '\n' && !feof(fp)){
-        c = fgetc(fp);
-        if(c == 'B' || c == 'E'|| c == '1'|| c == '2'|| c == '3'|| c == '4'|| c == '/'|| c == '0'){
-            temp[i] = c;
-            i++;
-        }
-    }
-    size_t u = i;
-    char* line = calloc(u,sizeof(char));
-    strncpy(line,temp,u);    
-    return line;
+void enviar(char* msg, int fd[2]){
+    int len = strlen(msg)+1;
+    write(fd[1],msg,len);
 }
-
-
-// struct charM* crearMatriz hace una matriz de la sopa de letras contenida en un archivo txt
-struct charM* crearMatriz(const char* nombreArchivo){
-    char* tmp;
-    int i= 0;
-    printf("|||||||%s\n", nombreArchivo);
-     printf("holaa");
-    FILE *fp = fopen(nombreArchivo,"r");
-    struct charM* strArray = malloc(sizeof(struct charM));
-     printf("holaa");
-    if (fp == NULL){
-        printf("No se pudo abrir el archivo :c\n");
-        return NULL;
-    }
-    tmp = getLine(fp);
-    const int n = strlen(tmp);
-    strArray->mp = calloc(n,sizeof(char*));
-    strArray->mp[0] = tmp;
-    strArray->dimension = strlen(tmp);
-    i++;
-    while(!feof(fp)){
-        strArray->mp[i] = getLine(fp);
-        i++;
-    }
-    printf("rawr");
-    fclose(fp);
-    return strArray;
+void recibir(char* dest, int fd[2]){
+    read(fd[0],dest,25);
 }
-
-void printMatriz(struct charM* matrix){
-    printf("%d\n",matrix->dimension);
-    for(int i = 0;i<matrix->dimension;i++){
-        printf("Linea %d: %s\n",i,matrix->mp[i]);
+void generarPipes(int array[8][2]){
+    for(int i = 0;i<8;i++){
+        pipe(array[i]);
     }
 }
+void generarCartas(int roles[4]){
 
+}
+void asignarRoles(){
 
+}
 
+void moverse(){
 
+}
 
+void mover(int movimiento,int distancia, char inicio[][90], struct jugador player){
+    //0 para arriba, 1 para la derecha, 2 para la izquierda, 3 para abajo/
+    int dirH = 0;
+    int dirV = 0;
+    switch(movimiento){
+        case 0:
+            dirV = 1;
+        case 1:
+            dirH = 1;
+        case 2:
+            dirV =-1;
+        case 3:
+            dirH =-1;
+    }
+        inicio[player.coord_x][player.coord_y] = player.tmp;
+        player.tmp = inicio[player.coord_x+distancia*dirH][player.coord_y+distancia*dirV];
+        inicio[player.coord_x+distancia*dirH][player.coord_y+distancia*dirV] = player.num;
+}
+void accionar(){
 
-
-struct tableroN{
-    int bUP;
-    int bLeft;
-    int bRight;
-    int bDown;
-};
-
-struct centros{
-    char nime[12];
-    int coord_x;
-    int coord_y;
-};
-
-struct jugador{
-    int numJugador;
-    char nombre[2];
-    char carta;
-    int coord_x;
-    int coord_y;
-};
-
-
-
-
-char** revolverMazoT(){
-    int tableros[7];
-    srand(time(NULL));
-    for (int i = 0; i<7; i++){
-        int lugarMazo = rand() % 7 + 1;
-        for (int j = 0; j<7; j++){
-            if (lugarMazo == tableros[j]){
-                i--;
+}
+void procesar(struct jugador player,char* cosa, char inicio[][90]){
+    // m: movimiento , d: distancia, f: fin del juego (de 1 a 9)
+    // encode de acción: mdc,a,f
+    if(cosa[0]=='a'){
+        
+    }
+    else{
+        mover(cosa[0],cosa[1],inicio,player);
+    }
+}
+void buscarP(struct jugador player, char inicio[][90]){
+    for(int i = 0;i<90;i++){
+        for(int j=0;j<90;i++){
+            if(inicio [i][j]==player.num+48){
+                player.coord_x = i;
+                player.coord_y = j;
+                printf("player %d en (%d,%d)\n",player.num,i,j);
                 break;
             }
-            else if (j == 6){
-                tableros[i] = lugarMazo;
-                //printf(" %d", tableros[i]);
-            }
         }
-    }
-    printf("\n");
-    int j = 1;
-    char** arria = malloc(7*sizeof(char*));
-    for (int i = 0; i<7; i++){
-        
-        if (tableros[i] == j){
-            char real = i+1 + '0';
-            char cadenaNum[2];
-            cadenaNum[0] = real;
-            cadenaNum[1] = '\0';
-            char* tablero = malloc(20*sizeof(char));
-            strcpy(tablero, "tablero");
-            char* txt = ".txt";
-            strcat(tablero, cadenaNum); 
-            strcat(tablero, txt); 
-            arria[j-1] = tablero;
-            //printf(" %s", arria[j-1]);
-            i = -1;
-            j++;
-        }
-    }
-    return arria;
-}
-
-struct tableroN salidasT(char* archiv){
-    struct tableroN ubic;;
-    ubic.bUP = 0;
-    ubic.bRight = 0;
-    ubic.bDown = 0;
-    ubic.bLeft = 0;
-    FILE *file;
-    file = fopen(archiv, "r");
-    struct charM* matriz = crearMatriz(archiv);
-
-   if ( matriz->mp[0][2]== 'B'){
-                ubic.bLeft = 1;
-    }
-    if (matriz->mp[2][0] == 'B'){
-                ubic.bUP = 1;
-    }
-    if (matriz->mp[2][4] == 'B'){
-                ubic.bDown = 1;
-    }
-    if (matriz->mp[4][2] == 'B'){
-                ubic.bRight = 1;
-    }
-    printf("miau");
-    fclose(file);
-    return ubic;
-}
-
-void juntarTablas(char inicio[][90],char* tablaCentral, char*tabla_a_unir, struct centros* allcenter, char dir){
-    char caracter;
-    int m = 0;
-     printf("ollaaaa");
-    int n = 0;
-    for(int i = 0; i<9; i++){
-
-        if (strncmp(allcenter[i].nime, tablaCentral, 10) == 0){
-            m = allcenter[i].coord_x;
-            n = allcenter[i].coord_y;
-        }
-    }
-
-    char porsilas[12];
-    printf("ollaaaa");
-    strncpy(porsilas,tabla_a_unir,12);
-    
-    FILE* tmp = fopen(porsilas, "r");
-    if (tmp == NULL){
-        printf("No se pudo abrir el archivo :c\n");
-        
-    }
-
-    switch (dir){
-        case 'u':
-            n = n-5;
-            break;
-        case 'l':
-            m = m-5;
-            break;
-        case 'r':
-            m = m+5;
-            break;
-        case 'd':
-            n = n+5;
-            break;
-    }
-    
- 
-    for (int kai = 0; kai<9; kai++){
-        if (strncmp(allcenter[kai].nime, "cambiar", 7) == 0 ){
-            allcenter[kai].coord_x = m;
-            allcenter[kai].coord_y = n;
-            strncpy(allcenter[kai].nime, tabla_a_unir, 12);
-            break;
-        }
-    }
-
-
-    m = m-2;
-    int temp = m;
-    n = n-2;
-    
-    while ((caracter = fgetc(tmp)) != EOF){
-        if ( caracter == 'B' || caracter == '1' || caracter == '2' || caracter == '3' || caracter == '4' || caracter == 'E' || caracter == '/' || caracter == '0'){
-           inicio[m][n] = caracter;
-            m++;
-        }
-        else if(caracter == '\n'){
-            n++;
-            m = temp ;
-        }
-    }
-    for (int i = 0; i <90; i++){
-        for(int j = 0; j<90; j++){
-            printf("%c", inicio[i][j]); 
-        }
-        printf("\n");    
-    }    
-    fclose(tmp);
-}
-
-
-void verificarTablas(char inicio[][90],char* archivo,char** tableros, char dir, struct centros* allcenter){
-    struct tableroN tablaSec;
-    struct tableroN tablaTri;
-    switch(dir){
-        case 'u':
-           for(int i = 0; i<9; i++){
-                    printf("sas: %s\n",tableros[i]);
-                    //aqui esta el sus !!!!!!
-                    if(strcmp(tableros[i], "usado") != 0){
-                    tablaSec = salidasT(archivo);
-                    
-                    if(tablaSec.bUP == 1 ){
-                        printf("ingreseeeeeee");
-                        tablaTri = salidasT(tableros[i]);
-                        if (tablaTri.bDown == 1){
-                            //juntarTablas(inicio, archivo, tableros[i], allcenter, dir);
-                            strcpy(tableros[i], "usado");
-                            break;
-                        }  
-                    }
-                }    
-            }
-            break;
-           
-        case 'l':
-            for(int i = 0; i<9; i++){
-                printf("%d", i);
-                    if(strcmp(tableros[i], "usado") != 0){
-                    tablaSec = salidasT(archivo);
-                    printf("%d", tablaSec.bLeft);
-                    if(tablaSec.bLeft == 1 ){
-                        printf("ingreseeeeeee");
-                        tablaTri = salidasT(tableros[i]);
-                        if (tablaTri.bRight == 1){
-                            juntarTablas(inicio, archivo, tableros[i], allcenter, dir);
-                            strcpy(tableros[i], "usado");
-                            break;
-                        }  
-                    }
-                }    
-            }
-            break;
-        case 'r':    
-            for(int i = 0; i<9; i++){
-                printf("%d", i);
-                    if(strcmp(tableros[i], "usado") != 0){
-                    tablaSec = salidasT(archivo);
-                    printf("%d", tablaSec.bLeft);
-                    if(tablaSec.bRight == 1 ){
-                        printf("ingreseeeeeee");
-                        tablaTri = salidasT(tableros[i]);
-                        if (tablaTri.bLeft == 1){
-                            juntarTablas(inicio, archivo, tableros[i], allcenter, dir);
-                            strcpy(tableros[i], "usado");
-                            break;
-                        }  
-                    }
-                }    
-            }
-            break;
-        case 'd':    
-            for(int i = 0; i<9; i++){
-                printf("%d", i);
-                    if(strcmp(tableros[i], "usado") != 0){
-                    tablaSec = salidasT(archivo);
-                    printf("%d", tablaSec.bLeft);
-                    if(tablaSec.bDown == 1 ){
-                        printf("ingreseeeeeee");
-                        tablaTri = salidasT(tableros[i]);
-                        if (tablaTri.bUP == 1){
-                            juntarTablas(inicio, archivo, tableros[i], allcenter, dir);
-                            strcpy(tableros[i], "usado");
-                            break;
-                        }  
-                    }
-                }    
-            }
-            break;    
     }
 }
 
 int main(){
-
-char inicio[90][90];
-struct centros todos[9];
-    for (int i = 0; i < 90; i++){
-        for (int j = 0; j < 90; j++){
-            inicio[i][j] = '-';
-        }
-   }
-    FILE *file;
-    file = fopen("Inicio.txt", "r");
-    char caracter;
-    int fila = 45;
-    int j = 45;
-    while ((caracter = fgetc(file)) != EOF){
-  
-        if (caracter == 'B' || caracter == 'E' || caracter == '1' || caracter == '0' || caracter == '/' || caracter == '1' || caracter == '2' || caracter =='3'|| caracter == '4'){
-
-            inicio[fila][j] = caracter;
-            fila++;
-        }
-        else if(caracter == '\n'){
-            j++;
-            fila = 45;
-        }
-    }
-
-
-    for (int i = 0; i <90; i++){
-        for(int j = 0; j<90; j++){
-             printf("%c",inicio[j][i]);
-            }
-
-        printf("\n");    
-    }   
-    fclose(file);
-
-   
+    char inicio[90][90];
+    struct centros todos[9];
+    hacer_inicio(inicio, todos);
 
     for(int rai = 0; rai<9; rai++){
         if (rai == 0){
@@ -368,28 +90,118 @@ struct centros todos[9];
 
 
     char** tableros = revolverMazoT();
-    printf("\n\n");
-    verificarTablas(inicio, "Inicio.txt", tableros, 'u', todos);
-    char newtable[12];
-    for (int i = 0; i<9; i++){
-        if (strncmp(todos[i].nime, "tablero", 7) == 0){
-            strncpy(newtable, todos[i].nime, 12);
+    //verificarTablas(inicio, "Inicio.txt", tableros, 'u', todos);
+    //verificarTablas(inicio, todos[1].nime, tableros, 'u', todos);
+
+
+
+    const int lenM = 12;
+    struct jugador jugador;
+    int rondas = 3;
+    int pipes[8][2];
+    int mazoCartas[4];
+    char orden[lenM];
+    char input[lenM]; 
+    char ret[lenM];
+    generarPipes(pipes);
+    generarCartas(mazoCartas);
+    int id= 0;
+    int p=0;
+    int pid;
+    char accion[lenM];
+    char* msgturno = calloc(lenM,lenM*sizeof(char));
+    printf("proceso god: %d\n",getpid());
+
+    
+    printf("pipes creadas!\n");
+
+    for(int i = 0;i<4;i++){
+        if ((pid=fork())==0){
         
-        }
-        printf(" %s", todos[i].nime);
-        printf(" %d", todos[i].coord_x);
-        printf(" %d", todos[i].coord_y);    
+        jugador.id = pid;
+        id = i+1;
+        jugador.num = id;
+        jugador.tmp = 0;
+        //buscarP(jugador,inicio);
+        break;}
     }
-    //verificarTablas(inicio, newtable, tableros, 'u', todos);
-    for (int i = 0; i<9; i++){
-        if (strncmp(todos[i].nime, "tablero", 7) == 0){
-            strncpy(newtable, todos[i].nime, 12);
-        
+    printf("Hola, me presento, soy: J%d (%d)\nhijo de:%d\n\n",jugador.num,getpid(),getppid());
+    //if(id == 0){jugador;}
+
+
+
+    if(id == 0){ //logica principal del juego (en proceso padre)
+        mover(0,1,inicio,jugador);
+        printf("padre diciendo wa\n");
+        for(int ronda=1;ronda<=rondas;ronda++){
+            printf("\nINICIO DE LA RONDA: %d\n",ronda);
+            //write(pipes[0][1],"nueva ronda",lenM);
+            
+            for(int turno=1;turno<=4;turno++){
+                strcat(msgturno,"turno j");
+                msgturno[7]=turno;
+                msgturno[8]='\0';
+                write(pipes[0][1],msgturno,lenM);
+                printf("Es el turno del J%d\n",turno);
+                read(pipes[3+turno][0],accion,lenM);
+            }
         }
-        printf(" %s", todos[i].nime);
-        printf(" %d", todos[i].coord_x);
-        printf(" %d", todos[i].coord_y);    
+        write(pipes[0][1],"fin",lenM); //informar sobre ganador?
     }
-    //verificarTablas(inicio, newtable, tableros, 'u', todos);
- 
-} 
+    else{
+        if(id==1){
+            read(pipes[0][0],input,lenM);
+            printf("MENSAJE INTERCEPTADO: %s\n",input);
+            int k = 0;
+            while(strcmp(input,"fin")&&strlen(input)!=0){
+                if(1){
+                    int j = input[7];
+                    printf("Indique la acción a realizar para el J%d: \n",j);
+                    scanf("%s",input);printf("\n");
+                    //hacer algo con el input
+                    //generar ret
+                    // encode de acción: (m+a+f)d
+                    // m: movimiento , d: distancia, f: fin del juego (de 1 a 9) 
+                    //strcpy(ret,input);
+                    //printf("echo: %s\n",input);
+                    //write(pipes[id][1],ret,lenM);
+                    if(j == 1){
+                        procesar(jugador,input,inicio);
+                        write(pipes[4][1],"ok",lenM);
+                    }else{
+                        write(pipes[j-1][1],input,lenM);
+                        //printf("pipe mandada a J%d: %s\n",j,input);
+                    }
+                }
+                else if(!strcmp(input,"fin")){
+
+                }
+                printf("miau %s\n",input);
+                //for(int j = 0;j<strlen(input);j++){printf("%c\n",input[j]);}
+                read(pipes[0][0],input,lenM);
+                k++;
+            }
+            printf("-------sas\n");
+        }
+        else{
+            read(pipes[id-1][0],input,lenM);
+            //printf("MENSAJE INTERCEPTADO: %s\n",input);
+            while(strstr(input,"fin")==NULL){
+                printf("proceso del J%d esperando pipe\n",id);
+                printf("recibido en J%d: %s\n",id,input);
+                if(strcat(input,"moverse")){
+                    procesar(jugador,input,inicio);
+                }
+
+                write(pipes[id+3][1],"ok",lenM);
+                read(pipes[id-1][0],input,lenM);
+            }
+            int winner = input[3];
+            printf("J%d felicita al J%d por ganar!!",id,winner);
+            exit(0);
+        }
+    }
+
+
+    free(msgturno);
+}

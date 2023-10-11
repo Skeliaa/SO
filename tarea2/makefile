@@ -2,15 +2,8 @@
 
 all: main exe clean
 
-
-yo: mainyo exe clean
-
-mainyo: mainyo.c
-	@gcc -Wall -g -o mainyo.o mainyo.c
-
-
-main: main.c
-	@gcc -Wall -g -o main.o main.c
+main: main.c headerso.c headerso.h
+	@gcc -Wall -g -o main.o main.c headerso.c 
 
 exe:
 	@./*.o
